@@ -13,12 +13,33 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="Pliki źródłowe\GameObjects">
+      <UniqueIdentifier>{c7435509-27b9-4130-b2af-5dcbf926b2ed}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Pliki nagłówkowe\GameObjects">
+      <UniqueIdentifier>{db3a306f-674f-41d9-9572-4d99cfd9f868}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Pliki źródłowe\Orders">
+      <UniqueIdentifier>{373985b2-dbab-4d56-9db0-1b81dbfeef67}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Pliki nagłówkowe\Orders">
+      <UniqueIdentifier>{130fcacb-bfa2-4329-b65e-bcf7f0ee4953}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Pliki źródłowe\Interfaces">
+      <UniqueIdentifier>{2ff1c043-b540-4b83-9214-011fa517489c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Pliki nagłówkowe\Interfaces">
+      <UniqueIdentifier>{e544120e-518e-4e6f-a670-2f8c97bf2736}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Pliki nagłówkowe\Panel">
+      <UniqueIdentifier>{84eb0d22-05dd-4b93-aa5f-40828665be5c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Pliki źródłowe\Panel">
+      <UniqueIdentifier>{e79f6c92-0ea0-4bba-b3b6-8bcfabdbcac7}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
-      <Filter>Pliki źródłowe</Filter>
-    </ClCompile>
-    <ClCompile Include="Chunk.cpp">
       <Filter>Pliki źródłowe</Filter>
     </ClCompile>
     <ClCompile Include="player.cpp">
@@ -27,11 +48,29 @@
     <ClCompile Include="unit.cpp">
       <Filter>Pliki źródłowe</Filter>
     </ClCompile>
+    <ClCompile Include="GameObject.cpp">
+      <Filter>Pliki źródłowe\GameObjects</Filter>
+    </ClCompile>
+    <ClCompile Include="Chunk.cpp">
+      <Filter>Pliki źródłowe\GameObjects</Filter>
+    </ClCompile>
+    <ClCompile Include="Ball.cpp">
+      <Filter>Pliki źródłowe\GameObjects</Filter>
+    </ClCompile>
+    <ClCompile Include="HUD_Panel.cpp">
+      <Filter>Pliki źródłowe\Panel</Filter>
+    </ClCompile>
+    <ClCompile Include="GenericOrder.cpp">
+      <Filter>Pliki źródłowe\Orders</Filter>
+    </ClCompile>
+    <ClCompile Include="MoveOrder.cpp">
+      <Filter>Pliki źródłowe\Orders</Filter>
+    </ClCompile>
+    <ClCompile Include="Map.cpp">
+      <Filter>Pliki źródłowe\GameObjects</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Chunk.h">
-      <Filter>Pliki nagłówkowe</Filter>
-    </ClInclude>
     <ClInclude Include="network_opcodes.hpp">
       <Filter>Pliki nagłówkowe</Filter>
     </ClInclude>
@@ -41,5 +80,29 @@
     <ClInclude Include="unit.hpp">
       <Filter>Pliki nagłówkowe</Filter>
     </ClInclude>
+    <ClInclude Include="GameObject.h">
+      <Filter>Pliki nagłówkowe\GameObjects</Filter>
+    </ClInclude>
+    <ClInclude Include="Chunk.h">
+      <Filter>Pliki nagłówkowe\GameObjects</Filter>
+    </ClInclude>
+    <ClInclude Include="Ball.h">
+      <Filter>Pliki nagłówkowe\GameObjects</Filter>
+    </ClInclude>
+    <ClInclude Include="HUD_Panel.h">
+      <Filter>Pliki nagłówkowe\Panel</Filter>
+    </ClInclude>
+    <ClInclude Include="GenericOrder.h">
+      <Filter>Pliki nagłówkowe\Orders</Filter>
+    </ClInclude>
+    <ClInclude Include="MoveOrder.h">
+      <Filter>Pliki nagłówkowe\Orders</Filter>
+    </ClInclude>
+    <ClInclude Include="Map.h">
+      <Filter>Pliki nagłówkowe\GameObjects</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
   </ItemGroup>
 </Project>

@@ -3,13 +3,24 @@
 #include <iostream>
 #include <cmath>
 #include <cstdlib>
+#include <cstring>
+#include <list>
+
 
 //#include "../common/network_opcodes.hpp"
 #include "network_opcodes.hpp"
+#include "GameObject.h"
+#include "Chunk.h"
+#include "Map.h"
+#include "Ball.h"
+#include "HUD_Panel.h"
+
+#define GLOBAL_FRAME_RATE 60
 
 #ifdef linux
 #include <getopt.h>
 #endif // linux
+
 using namespace sf;
 using namespace std;
 
@@ -89,182 +100,89 @@ int main(int argc, char** argv)
 	}
 #endif // linux
 	//---------------------------------------------------------------------------------------------------------------------//
+
 	bool quit = false;//główny wyłącznik
 
-	//POMOCNE ZMIENNE
+	//POMOCNE ZMIENNE do lacznosci 
 	//<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 	UdpSocket socket;
 	socket.setBlocking(false);
 	socket.bind(local_port);
-
 	Packet send_packet;
 	Packet receive_packet;
 	IpAddress incomming_ip;
 	unsigned short incomming_port;
 
-	//POMOCNE ZMIENNE
+	//POMOCNE ZMIENNE do renderowania mapy
 	//<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+	int Frame_Number = 60;
 	int map_width = 100, map_height = 100;
 	int number_of_chunks = map_width * map_height;
-	int number_of_trees1 = 8;
-	int number_of_units1 = 2;
 	int speed_of_scrolling = 10;
 	float game_zoom = 0.0f; // od -1.5 do 0.5
-	int zoom_step=60; //mnoznik sily zooma
-	double object_scroll = speed_of_scrolling*sqrt(2);//predkosc po przekstalceniu
-	int resolution_width = 1920, resolution_height=1080;
+	int zoom_step = 60; //mnoznik sily zooma
+	double object_scroll = speed_of_scrolling * sqrt(2);
+	int resolution_width = 1920, resolution_height = 1080;
 	srand(time(NULL));
 	int random_number1 = rand();
 
-
+	//obsługa piłeczki
+	bool ball_active = false;
+	int x = 0;
+	int y = 0;
+	
 	//MODYFIKOWANIE OKNA APLIKACJI
 	//<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-	RenderWindow oknoAplikacji(VideoMode(resolution_width, resolution_height), "Kelajno", Style::Fullscreen);//to opcja fullscreen
-	oknoAplikacji.setFramerateLimit(60);//ustawiam limit fps na 60
+	RenderWindow oknoAplikacji(VideoMode(resolution_width, resolution_height), "Kelajno", Style::Close);//to opcja resizeable
+	oknoAplikacji.setFramerateLimit(Frame_Number);//ustawiam limit fps na 60
 
 	//POMOCNE ZMIENNE 2
 	//<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 	Vector2i mouse_possition = Mouse::getPosition(oknoAplikacji);
 
-	//WCZYTYWANIE TEKSTUR
+	//HUD
 	//<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-	Texture texture1;//sluzy do wczytywania tekstury bo jest texture i image
-	Texture texture2;
-	Texture texture3;
-	Texture texture4;
-	Texture texture5;
-	Texture texture_grass1;
-	Texture texture_grass2;
-	Texture texture_grass3;
-	Texture texture_test1;
+	HUD_Panel hud_panel = HUD_Panel(sf::Vector2u(resolution_width, resolution_height));
 
-	texture1.loadFromFile("Textures/Grunt.png");//zwraca true lub false
-	texture2.loadFromFile("Textures/Grunt2.png");
-	texture3.loadFromFile("Textures/Drzewko.png");
-	texture4.loadFromFile("Textures/Drzewko2.png");
-	texture5.loadFromFile("Textures/Czolg.png");
-	texture_grass1.loadFromFile("Textures/Trawa1.png");
-	texture_grass2.loadFromFile("Textures/Trawa2.png");
-	texture_grass3.loadFromFile("Textures/Trawa3.png");
-	texture_test1.loadFromFile("Textures/Test.png");
-
-	Vector2u texture1_size = texture1.getSize();
-	Vector2u texture2_size = texture2.getSize();
-	Vector2u texture3_size = texture3.getSize();
-	Vector2u texture4_size = texture4.getSize();
-	Vector2u texture5_size = texture5.getSize();
-	Vector2u texture_grass1_size = texture_grass1.getSize();
-	Vector2u texture_grass2_size = texture_grass2.getSize();
-	Vector2u texture_grass3_size = texture_grass3.getSize();
-	Vector2u texture_test1_size = texture_test1.getSize();
-
-	//TABLICE OBIEKTÓW
+	//TEXTURY
 	//<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-	Sprite *chunk = new Sprite[number_of_chunks];
-	Sprite *drzewo = new Sprite[number_of_trees1];
-	Sprite *unit1 = new Sprite[number_of_units1];
+	Texture t1; 
+	Texture t2; 
+	Texture t3;
+	t1.loadFromFile("Textures/Terrain/Grunt.png");
+	t2.loadFromFile("Textures/Ball/Ball.jpg");
+	t3.loadFromFile("Textures/Ball/Active.png");
 
-	//PRZYPISYWANIE TEKSTUR DO CHUNKÓW
+	sf::Sprite active;
+	active.setTexture(t3);
+
+	//MAPA
 	//<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-	for (int i = 0; i < number_of_chunks; i++)
-	{
-		random_number1= rand();
-		//if (i % 2 == 0)
-		if(random_number1 % 5 == 0)
-		{
-			chunk[i].setTexture(texture1);
-		}
-		else if (random_number1 % 5 == 1)
-		{
-			chunk[i].setTexture(texture2);
-		}
-		else if (random_number1 % 5 == 2)
-		{
-			chunk[i].setTexture(texture_grass1);
-		}
-		else if (random_number1 % 5 == 3)
-		{
-			chunk[i].setTexture(texture_grass2);
-		}
-		else if (random_number1 % 5 == 4)
-		{
-			chunk[i].setTexture(texture_grass3);
-		}
+	Map map = Map(map_width, map_height, t1);
 
-		if (i < number_of_trees1)
-		{
-			drzewo[i].setTexture(texture4);
-		}
-
-		if (i < number_of_units1)
-		{
-			unit1[i].setTexture(texture5);
-		}
-	}
-
-	//ROZMIESZCZANIE CHUNKÓW W PRZESTRZENI
+	//TABLICA OBIEKTÓW
 	//<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-	FloatRect chunk_size = chunk[0].getGlobalBounds();//biore info wymiarow chunka na przykladzie pierwszego
-	for (int i = 0; i < map_height; i++)
-	{
-		for (int g = 0; g < map_width; g++)
-		{
-			chunk[g + (i*map_width)].setPosition((oknoAplikacji.getSize().x*0.5 + 250) - (g*chunk_size.width),
-				(oknoAplikacji.getSize().y*0.5 - 250) + (i*chunk_size.height));
-			//podwojna petla "i" dla nr wiersza i "g" dla kolumny
-			//do szerokosci dodaje wielokrotnosci kolumnowe i wierszowe dla wysokosci 250 na korekte
-		}
-	}
+	Ball b = Ball(t2, 5, 5, map.get_pointer_to_chunk(5,5)->get_sprite().getPosition().x, map.get_pointer_to_chunk(5, 5)->get_sprite().getPosition().y);
+	b.set_sprite(t2, 0,0 );
 
-	//MODYFIKOWANIE WIDOKU
+	//cout << map.get_chunks[5][5].get_sprite().getPosition().x << " " << map.get_chunks[5][5].get_sprite().getPosition().y << "\n";
+	//cout << b.get_sprite().getPosition().x << " " << b.get_sprite().getPosition().y << "\n";
+
+	//VIEWS 
 	//<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-	View chunk_view = oknoAplikacji.getDefaultView();//widok ma byc taki jak okno tak jakby ciagnie z niego dane
-	chunk_view.setSize(chunk_view.getSize().x, chunk_view.getSize().y * 2);//tak jak przy teksturze skalujemy 2 wieksza wysoksoc
-	chunk_view.setRotation(45);
-	chunk_view.setCenter(oknoAplikacji.getSize().x*0.5, oknoAplikacji.getSize().y*0.5);
-	//cout << chunk_view.getSize().x << " " << chunk_view.getSize().y << endl;
-	View object_view = oknoAplikacji.getDefaultView();
-	chunk[0].setTexture(texture_test1);
+	View map_view = oknoAplikacji.getDefaultView();
+	//map_view.setSize(map_view.getSize().x, map_view.getSize().y * 2);
+	map_view.setCenter(0, 0);
 
+	View panel_view = oknoAplikacji.getDefaultView();
 
-	View minimap_view = chunk_view;
-	//minimap_view.zoom(1.3f);
-	//minimap_view.setSize(chunk_view.getSize().x/6, chunk_view.getSize().y * 2/6);
+	//View minimap_view = oknoAplikacji.getDefaultView();
 	//minimap_view.setViewport(FloatRect(0.0f, 0.75f, 0.25f, 0.25f));
-	minimap_view.setViewport(FloatRect(0.0f, 0.75f, 0.25f, 0.25f));
-	//minimap_view.setSize(chunk_size.width*sqrt(2)*map_width, chunk_size.height*sqrt(2)*map_height);
-	minimap_view.setCenter(chunk_size.width*sqrt(2)*map_width/2, chunk_size.height*sqrt(2)*map_height/2);
-
-	if ((chunk_size.width*sqrt(2)*map_width > oknoAplikacji.getSize().x) || (chunk_size.height*sqrt(2)*map_height > oknoAplikacji.getSize().y))
-	{
-		if (chunk_size.width*sqrt(2)*map_width / oknoAplikacji.getSize().x > chunk_size.height*sqrt(2)*map_height / oknoAplikacji.getSize().y)
-		{
-			minimap_view.zoom(chunk_size.width*sqrt(2)*map_width/ oknoAplikacji.getSize().x);
-		}
-		else if(chunk_size.width*sqrt(2)*map_width / oknoAplikacji.getSize().x < chunk_size.height*sqrt(2)*map_height / oknoAplikacji.getSize().y)
-		{
-			minimap_view.zoom(chunk_size.height*sqrt(2)*map_height/ oknoAplikacji.getSize().y);
-		}
-	}
-	//minimap_view.setCenter(oknoAplikacji.getSize().x , oknoAplikacji.getSize().y);
-	cout << minimap_view.getSize().x << " " << minimap_view.getSize().y << endl;
-
-	//UMIESZCZANIE OBIEKTÓW NA KONKRETNYCH CHUNKACH
-	//<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-	/*umiesc_obiekt(drzewo[0], texture4_size, image, 1000, texture1_size, oknoAplikacji, chunk_view);
-	umiesc_obiekt(drzewo[1], texture4_size, image, 250, texture1_size, oknoAplikacji, chunk_view);
-	umiesc_obiekt(drzewo[2], texture4_size, image, 453, texture1_size, oknoAplikacji, chunk_view);
-	umiesc_obiekt(drzewo[3], texture4_size, image, 841, texture1_size, oknoAplikacji, chunk_view);
-	umiesc_obiekt(drzewo[4], texture4_size, image, 134, texture1_size, oknoAplikacji, chunk_view);
-	umiesc_obiekt(drzewo[5], texture4_size, image, 345, texture1_size, oknoAplikacji, chunk_view);
-	umiesc_obiekt(drzewo[6], texture4_size, image, 612, texture1_size, oknoAplikacji, chunk_view);
-	umiesc_obiekt(drzewo[7], texture4_size, image, 748, texture1_size, oknoAplikacji, chunk_view);
-	umiesc_obiekt(unit1[0], texture5_size, image, 749, texture1_size, oknoAplikacji, chunk_view);*/
-	umiesc_obiekt(unit1[1], texture5_size, chunk, 46, texture1_size, oknoAplikacji, chunk_view);
 
 	//---------------------------------------------------------------------------------------------------------------------//
 	Time time;
 	Clock clock;
+
 	//OBSŁUGA GRY
 	//<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 	while (!quit)
@@ -329,29 +247,124 @@ int main(int argc, char** argv)
 					if (game_zoom < 0.5f)
 					{
 						game_zoom += 0.1f;
-						chunk_view.setSize(resolution_width + (16 * zoom_step)*game_zoom, (resolution_height * 2) + (9 * zoom_step*2)*game_zoom);//zmieniamy rozmiar widoku na pozadany dodajemy wielokrotnosci stosunku rozdzielczosci (wysokosc * 2 bo render wysokosciowy mmial byc 2 razy wiekszy dla chunkow)
-						object_view.setSize(resolution_width + (16 * zoom_step)*game_zoom, (resolution_height)+(9 * zoom_step)*game_zoom);
+						map_view.setSize(resolution_width + (16 * zoom_step)*game_zoom, (resolution_height*2) + (9 * zoom_step * 2) * game_zoom);
+						//object_view.setSize(resolution_width + (16 * zoom_step)*game_zoom, resolution_height + (9 * zoom_step) * game_zoom);
+
 					}
 				break;
 				case Keyboard::Num2:
 					if (game_zoom > -0.5f)
 					{
 						game_zoom -= 0.1f;
-						chunk_view.setSize(resolution_width + (16 * zoom_step)*game_zoom, (resolution_height * 2) + (9 * zoom_step*2)*game_zoom);
-						object_view.setSize(resolution_width + (16 * zoom_step)*game_zoom, (resolution_height) + (9 * zoom_step)*game_zoom);
+						map_view.setSize(resolution_width + (16 * zoom_step)*game_zoom, (resolution_height * 2) + (9 * zoom_step * 2) * game_zoom);
+						//object_view.setSize(resolution_width + (16 * zoom_step)*game_zoom, resolution_height + (9 * zoom_step) * game_zoom);
 					}
 				break;
+
+				case Keyboard::Up:
+					{
+						map_view.move(0, -speed_of_scrolling);
+						//object_view.move(0, -object_scroll / 2);
+					}
+				break;				
+				
+				case Keyboard::Down:
+					{
+						map_view.move(0, speed_of_scrolling);
+						//object_view.move(0, object_scroll / 2);
+					}
+				break;
+
+				case Keyboard::Right:
+					{
+						map_view.move(speed_of_scrolling, 0);
+						//object_view.move(object_scroll, 0);
+					}
+
+				break;
+
+				case Keyboard::Left:
+					{
+						map_view.move(-speed_of_scrolling, 0);
+						//object_view.move(-object_scroll, 0);
+					}
+
+				break;
+
+				case Keyboard::Space:
+				{
+					cout << "Ball status: \n";
+					cout << "Active: " << ball_active << " \n";
+					cout << "Ball position: x - " << b.get_position_x() << ", y - " << b.get_position_y() << " \n";
+					cout << "Sprite position: x - " << b.get_sprite().getPosition().x << ", y - " << b.get_sprite().getPosition().y << " \n";
+					if (b.get_current_order() != nullptr) {
+						cout << "Order: \n";
+						cout << " Start: " << b.get_current_order()->get_start_x() << " " << b.get_current_order()->get_start_y() << " \n";
+						cout << " Mid: " << b.get_current_order()->get_mid_x() << " " << b.get_current_order()->get_mid_y() << " \n";
+						cout << " Next chunk: " << b.get_current_order()->get_next()->get_position_x() << " " << b.get_current_order()->get_next()->get_position_y()  << " \n";
+						cout << " Final: " << b.get_current_order()->get_final_x() << " " << b.get_current_order()->get_final_y() << " \n";
+					}
+					else {
+						cout << "Order: \n No Order! \n";
+					}
+
+				}
+
+				break;
+
+				case Keyboard::C:
+				{
+					if (b.get_current_order() != nullptr) {
+						b.cancel(*b.get_current_order());
+					}
+				}
+
+				break;
+
 				default:
 				break;
 				}
+
 				break;
 
 			case Event::MouseButtonPressed:
+				switch (zdarzenie.mouseButton.button) 
+				{
+				case Mouse::Left:
+				{
+					if (true == b.get_sprite().getGlobalBounds().contains(oknoAplikacji.mapPixelToCoords(mouse_possition, map_view))){
+						ball_active = true;
+					}
+					else {
+						ball_active = false;
+					}
+				}
 				break;
 
-			default:
+				case Mouse::Right:
+				{
+					x = map.get_pointer_to_chunk_with_mouse_on_it(oknoAplikacji, mouse_possition, map_view)->get_position_x();
+					y = map.get_pointer_to_chunk_with_mouse_on_it(oknoAplikacji, mouse_possition, map_view)->get_position_y();
+					cout << x << " " << y << "\n";
+
+
+
+					if (ball_active) {
+						if (b.get_current_order() == nullptr) {
+							MoveOrder m = MoveOrder(b.get_position_x(), b.get_position_y(), x, y, map);
+							//cout << m.get_final_x() << " " << m.get_final_y() << "\n";
+							b.give(m, map);
+						}
+
+
+					}
+				}
 				break;
 
+			break;
+			}
+
+				break;
 				//------------------------ZOOMOWANIE KAMERY -----------------------//
 			case Event::MouseWheelScrolled:
 					if (zdarzenie.mouseWheelScroll.delta <= -1)
@@ -359,8 +372,7 @@ int main(int argc, char** argv)
 						if (game_zoom < 0.5f)//oddalanie
 						{
 							game_zoom += 0.1f;
-							chunk_view.setSize(resolution_width + (16 * zoom_step)*game_zoom, (resolution_height * 2) + (9 * zoom_step * 2)*game_zoom);//zmieniamy rozmiar widoku na pozadany dodajemy wielokrotnosci stosunku rozdzielczosci (wysokosc * 2 bo render wysokosciowy mmial byc 2 razy wiekszy dla chunkow)
-							object_view.setSize(resolution_width + (16 * zoom_step)*game_zoom, (resolution_height)+(9 * zoom_step)*game_zoom);
+							map_view.setSize(resolution_width + (16 * zoom_step)*game_zoom, resolution_height + (9 * zoom_step) * game_zoom);
 						}
 					}
 					if (zdarzenie.mouseWheelScroll.delta >= 1)
@@ -368,8 +380,7 @@ int main(int argc, char** argv)
 						if (game_zoom > -1.5f)//przyblizanie
 						{
 							game_zoom -= 0.1f;
-							chunk_view.setSize(resolution_width + (16 * zoom_step)*game_zoom, (resolution_height * 2) + (9 * zoom_step * 2)*game_zoom);
-							object_view.setSize(resolution_width + (16 * zoom_step)*game_zoom, (resolution_height)+(9 * zoom_step)*game_zoom);
+							map_view.setSize(resolution_width + (16 * zoom_step)*game_zoom, resolution_height + (9 * zoom_step) * game_zoom);
 						}
 					}
 					cout << "wheel movement: " << zdarzenie.mouseWheelScroll.delta << endl;
@@ -377,28 +388,30 @@ int main(int argc, char** argv)
 					cout << "mouse y: " << zdarzenie.mouseWheelScroll.y << endl;
 				break;
 
+			default:
+				break;
 			}
 			
 			//--------------- PRZESUWANIE KAMERY --------------------------------------------//
-			if (mouse_possition.x == 0)
+			if (mouse_possition.x == 0) //left
 			{
-				chunk_view.move(-speed_of_scrolling, -speed_of_scrolling);//kamera w lewo
-				object_view.move(-object_scroll, 0);
+				map_view.move(-speed_of_scrolling, 0);
+				//object_view.move(-object_scroll, 0);
 			}
-			if (mouse_possition.y == 0)
+			if (mouse_possition.y == 0) //up
 			{
-				chunk_view.move(speed_of_scrolling, -speed_of_scrolling);//kamera w gore
-				object_view.move(0, -object_scroll/2);//W OSI Y TRZEBA POLOWA BO RENDER BYL W 2 WIEKSZEJ WIELKOSCI
+				map_view.move(0, -speed_of_scrolling);
+				//object_view.move(0, -object_scroll/2);
 			}
-			if (mouse_possition.x == oknoAplikacji.getSize().x-1)
+			if (mouse_possition.x == oknoAplikacji.getSize().x-1) //rigt
 			{
-				chunk_view.move(speed_of_scrolling, speed_of_scrolling);//kamera w prawo
-				object_view.move(object_scroll, 0);
+				map_view.move(speed_of_scrolling, 0);
+				//object_view.move(object_scroll, 0);
 			}
-			if (mouse_possition.y == oknoAplikacji.getSize().y-1)
+			if (mouse_possition.y == oknoAplikacji.getSize().y-1) //down
 			{
-				chunk_view.move(-speed_of_scrolling, speed_of_scrolling);//kamera w dol
-				object_view.move(0, object_scroll/2);//W OSI Y TRZEBA POLOWA BO RENDER BYL W 2 WIEKSZEJ WIELKOSCI
+				map_view.move(0, speed_of_scrolling);
+				//object_view.move(0, object_scroll / 2);
 			}
 			//dla objektow uzywam object_scroll tutaj sqrt(2)*speed_of_scrolling bo po przekstalceniu
 			
@@ -407,39 +420,40 @@ int main(int argc, char** argv)
 		//RENDER OBRAZU
 		//<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 		oknoAplikacji.clear();
-		oknoAplikacji.setView(chunk_view);//ustawia widok
-		for (int i = 0; i < number_of_chunks; i++)
-		{
-			oknoAplikacji.draw(chunk[i]);//wyswietla chunki
-		}
-		//oknoAplikacji.setView(oknoAplikacji.getDefaultView());//zeby zrzutowac jednostki i obiekty prosto
-		oknoAplikacji.setView(object_view);
-		for (int i = 0; i < number_of_trees1; i++)
-		{
-			oknoAplikacji.draw(drzewo[i]);
-		}
-		for (int i = 0; i < number_of_units1; i++)
-		{
-			oknoAplikacji.draw(unit1[i]);
+		
+		oknoAplikacji.setView(map_view);
+		for (int i = 0; i < map_width; i++) {
+			for (int j = 0; j < map_height; j++) {
+				map.get_pointer_to_chunk(i, j)->drawTo(oknoAplikacji);
+			}
 		}
 
-		oknoAplikacji.setView(minimap_view);
-		for (int i = 0; i < number_of_chunks; i++)
-		{
-			oknoAplikacji.draw(chunk[i]);//wyswietla chunki
-		}
+
+		b.place_on_chunk(oknoAplikacji, active, *(map.get_pointer_to_chunk(b.get_position_x(),b.get_position_y())), ball_active);
+
+		oknoAplikacji.setView(panel_view);
+		hud_panel.drawTo(oknoAplikacji);
+
+		//oknoAplikacji.setView(minimap_view);
+		//for (int i = 0; i < map_width; i++) {
+		//	for (int j = 0; j < map_height; j++) {
+		//		map[i][j].drawTo(oknoAplikacji);
+		//	}
+		//}
+
 		oknoAplikacji.display();
-
 		socket.send(send_packet, remote_ip, remote_port);//wyslanie pakietu
 		send_packet.clear();//czyszczenie pakietu
+
+		b.check_status(map, oknoAplikacji, ball_active);
+		//cout << b.get_position_x() << " " << b.get_position_y() << "\n";
+		//cout << mouse_possition.x << " " << mouse_possition.y << " \n";
+		//cout << map.get_chunks()[1][1].get_sprite().getPosition().x << " " << map.get_chunks()[1][1].get_sprite().getPosition().y << " \n";
 	}
 	//---------------------------------------------------------------------------------------------------------------------//
-	delete[] chunk;
-	delete[] drzewo;
-	delete[] unit1;
+
 	oknoAplikacji.close();
 
-	system("PAUSE");
 	return EXIT_SUCCESS;
 }
 
